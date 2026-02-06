@@ -1,0 +1,5 @@
+/build
+.vscode/
+
+.DS_STORE
+.editorconfig
