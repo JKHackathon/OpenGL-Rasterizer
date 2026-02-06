@@ -103,10 +103,6 @@ int main(int argc, char** argv) {
             mesh.positions.size(), mesh.texcoords.size(), mesh.normals.size(),
             mesh.triangles.size());
 
-    fprintf(stdout, "\n\tv0: %f %f %f\n\tv1: %f %f %f\n\n", mesh.positions[0].x,
-            mesh.positions[0].y, mesh.positions[0].z, mesh.positions[1].x,
-            mesh.positions[1].y, mesh.positions[1].z);
-
     // GLuint vbo;
     // glGenBuffers(1, &vbo);
     // rasterizer.bindArrayBuffer(vbo);
@@ -151,6 +147,21 @@ int main(int argc, char** argv) {
     rasterizer.uploadMesh(
         mesh);  // Here because shaders need to be compiled first
 
+    GLint location = glGetUniformLocation(program, "mvp");
+    if (location == -1) {
+        fprintf(stderr, "ERROR: mvp uniform not found or optimized out\n");
+    }
+
+    // auto transform = glm::scale(glm::mat4(1.0f), glm::vec3(.05,.05,.05));
+
+
+    // TODO: understand the full pipeline!!!
+        // Object -> world -> view/camera -> Clip space (clipping coordinate system/homogeneous clip space)
+        // -> NDCS (normalized device coordinate system, canonical view volume is bounds of it)
+        // -> DCS/screen space (device coordinate system)
+    glUniformMatrix4fv(location, 1, GL_FALSE,
+                       &mesh.center_mesh_transform()[0][0]);
+
     // Inputs, CURRENTLY HANDLED IN UPLOADMESH
     // if (!setVertexShaderInput(rasterizer)) {
     //     glfwTerminate();
@@ -160,7 +171,8 @@ int main(int argc, char** argv) {
     // Display loop
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glDrawElements(GL_TRIANGLES, mesh.triangles.size() * 3, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, mesh.triangles.size() * 3, GL_UNSIGNED_INT,
+                       0);
         // glDrawArrays(GL_TRIANGLES, 0, mesh.triangles.size() * 3);
 
         glfwSwapBuffers(window);
