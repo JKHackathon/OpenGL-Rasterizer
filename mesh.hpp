@@ -94,9 +94,9 @@ struct Mesh {
     }
 
     glm::mat4 center_mesh_transform() {
-        float max_bounds_diff =
-            std::max(bounds.max.x - bounds.min.x, std::max(bounds.max.y - bounds.min.y,
-                     bounds.max.z - bounds.min.z));
+        float max_bounds_diff = std::max(
+            bounds.max.x - bounds.min.x,
+            std::max(bounds.max.y - bounds.min.y, bounds.max.z - bounds.min.z));
         float scale_factor = 2 / max_bounds_diff;
 
         glm::vec3 center = bounds.center();
@@ -107,8 +107,13 @@ struct Mesh {
                 bounds.min.y, bounds.min.z, center.x, center.y, center.z,
                 max_bounds_diff);
 
-        auto transform = glm::scale(glm::mat4(1.0f), glm::vec3(scale_factor));
+        auto transform = glm::mat4(1.0f);
+        transform = glm::scale(transform, glm::vec3(scale_factor));
         transform = glm::translate(transform, -center);
+
+        glm::vec4 c = transform * glm::vec4(center, 1.0f);
+        printf("transformed center: %f %f %f\n", c.x, c.y, c.z);
+
         return transform;
     }
 };
