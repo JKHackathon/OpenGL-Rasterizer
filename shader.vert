@@ -5,8 +5,12 @@ layout(location=1) in vec3 norm;
 layout(location=2) in vec3 texcoord;
 
 uniform mat4 mvp;
+uniform mat4 mv;
+
+out vec4 normal;
 
 void main()
 {
     gl_Position = mvp * vec4(pos,1);
+    normal = vec4(normalize(transpose(inverse(mat3(mv))) * norm),1);
 }

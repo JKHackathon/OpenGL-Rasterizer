@@ -7,8 +7,8 @@
 #include <sstream>
 
 #include "ObjParser.hpp"
-#include "rasterizer.hpp"
 #include "orbit_camera.hpp"
+#include "rasterizer.hpp"
 
 // NOTE: any struct containing glm types need to be manually aligned or
 // allocated as a unique ptr Using alignas should work with smaller types (vec3,
@@ -20,6 +20,7 @@ struct AppState {
     glm::mat4 view_matrix;
     glm::mat4 projection_matrix;
     GLint mvp_location;
+    GLint mv_location;
     double prev_x;
     double prev_y;
 };
@@ -41,7 +42,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action,
 
     auto* state = static_cast<AppState*>(glfwGetWindowUserPointer(window));
     if (key == GLFW_KEY_D && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-        state->camera.pan(.1,0);
+        state->camera.pan(.1, 0);
         state->view_matrix = state->camera.calcViewMatrix();
         glm::mat4 mvp =
             state->projection_matrix * state->view_matrix * state->model_matrix;
@@ -49,7 +50,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action,
     }
 
     if (key == GLFW_KEY_A && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-        state->camera.pan(-.1,0);
+        state->camera.pan(-.1, 0);
         state->view_matrix = state->camera.calcViewMatrix();
         glm::mat4 mvp =
             state->projection_matrix * state->view_matrix * state->model_matrix;
@@ -57,7 +58,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action,
     }
 
     if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-        state->camera.pan(0,.1);
+        state->camera.pan(0, .1);
         state->view_matrix = state->camera.calcViewMatrix();
         glm::mat4 mvp =
             state->projection_matrix * state->view_matrix * state->model_matrix;
@@ -65,7 +66,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action,
     }
 
     if (key == GLFW_KEY_S && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-        state->camera.pan(0,-.1);
+        state->camera.pan(0, -.1);
         state->view_matrix = state->camera.calcViewMatrix();
         glm::mat4 mvp =
             state->projection_matrix * state->view_matrix * state->model_matrix;
@@ -91,7 +92,7 @@ static void cursor_position_callback(GLFWwindow* window, double xpos,
             dx, xpos, state->prev_x, dy, ypos, state->prev_y);
 
     // Rotating around world axes (z is up for some reason, prob
-    // defined in obj file) not camera axes 
+    // defined in obj file) not camera axes
     // state->view_matrix = glm::rotate(
     //     state->view_matrix, glm::radians(float(dx*.5)), glm::vec3(1, 0, 0));
     // state->view_matrix = glm::rotate(
@@ -101,9 +102,10 @@ static void cursor_position_callback(GLFWwindow* window, double xpos,
     state->camera.updateBasis();
     state->view_matrix = state->camera.calcViewMatrix();
 
-    glm::mat4 mvp =
-        state->projection_matrix * state->view_matrix * state->model_matrix;
+    glm::mat4 mv = state->view_matrix * state->model_matrix;
+    glm::mat4 mvp = state->projection_matrix * mv;
     glUniformMatrix4fv(state->mvp_location, 1, GL_FALSE, &mvp[0][0]);
+    glUniformMatrix4fv(state->mv_location, 1, GL_FALSE, &mv[0][0]);
 
     state->prev_x = xpos;
     state->prev_y = ypos;
@@ -256,11 +258,6 @@ int main(int argc, char** argv) {
     rasterizer.uploadMesh(
         mesh);  // Here because shaders need to be compiled first
 
-    appState->mvp_location = glGetUniformLocation(program, "mvp");
-    if (appState->mvp_location == -1) {
-        fprintf(stderr, "ERROR: mvp uniform not found or optimized out\n");
-    }
-
     // auto transform = glm::scale(glm::mat4(1.0f), glm::vec3(.05,.05,.05));
 
     appState->model_matrix = mesh.center_mesh_transform();
@@ -270,30 +267,36 @@ int main(int argc, char** argv) {
     // rotationAxis);
 
     appState->view_matrix = appState->camera.calcViewMatrix();
-        // glm::lookAt(glm::vec3(0, 0, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+    // glm::lookAt(glm::vec3(0, 0, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
     appState->projection_matrix =
         glm::perspective<float>(glm::radians(60.f), 640.f / 480, 0.1f, 100.f);
     // glm::mat4 orthographic_projection
-    glm::mat4 mvp = appState->projection_matrix * appState->view_matrix *
-                    appState->model_matrix;
+    glm::mat4 mv = appState->view_matrix * appState->model_matrix;
+    glm::mat4 mvp = appState->projection_matrix * mv;
 
     // glm::vec4 c = mvp * glm::vec4(mesh.bounds.center(), 1.0f);
     // printf("mvp center: %f %f %f\n", c.x, c.y, c.z);
 
-    // TODO: understand the full pipeline!!!
-    // Object -> world -> view/camera -> Clip space (clipping coordinate
-    // system/homogeneous clip space)
-    // -> NDCS (normalized device coordinate system, canonical view volume is
-    // bounds of it)
-    // -> DCS/screen space (device coordinate system)
+    appState->mvp_location = glGetUniformLocation(program, "mvp");
+    if (appState->mvp_location == -1) {
+        fprintf(stderr, "ERROR: mvp uniform not found or optimized out\n");
+    }
     glUniformMatrix4fv(appState->mvp_location, 1, GL_FALSE, &mvp[0][0]);
 
+    appState->mv_location = glGetUniformLocation(program, "mv");
+    if (appState->mv_location == -1) {
+        fprintf(stderr, "ERROR: mv uniform not found or optimized out\n");
+    }
+    glUniformMatrix4fv(appState->mv_location, 1, GL_FALSE, &mv[0][0]);
+
     // Display loop
+    glEnable(GL_DEPTH_TEST);
+
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        // glDrawElements(GL_TRIANGLES, mesh.triangles.size() * 3, GL_UNSIGNED_INT,
-        //                0);
-        glDrawArrays(GL_TRIANGLES, 0, mesh.triangles.size() * 3);
+        glDrawElements(GL_TRIANGLES, mesh.triangles.size() * 3, GL_UNSIGNED_INT,
+                       0);
+        // glDrawArrays(GL_TRIANGLES, 0, mesh.triangles.size() * 3);
         // glm::vec3 rotationAxis(1, 0, 0);
         // appState.view_matrix = glm::rotate(appState.view_matrix,
         // glm::radians(1.f), glm::vec3(1, 0, 0)); glm::mat4 mvp =
