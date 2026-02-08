@@ -63,8 +63,7 @@ void ObjParser::parse_obj_file(const char* filename) {
     std::ofstream testFile;
     testFile.open("test_file.obj");
     if (!testFile.is_open()) {
-        throw std::runtime_error(
-            "Failed to open test file: \n");
+        throw std::runtime_error("Failed to open test file: \n");
     }
 
     std::string line;
@@ -102,7 +101,9 @@ void ObjParser::parse_obj_file(const char* filename) {
             vertices.emplace_back(glm::vec3(string_to_float(tokens[0]),
                                             string_to_float(tokens[1]),
                                             string_to_float(tokens[2])));
-            auto vstring = "v" + std::string(tokens[0]) + std::string(tokens[1]) + std::string(tokens[2]);
+            auto vstring = "v  " + std::string(tokens[0]) + " " +
+                           std::string(tokens[1]) + " " +
+                           std::string(tokens[2]) + "\n";
             testFile.write(vstring.c_str(), vstring.size());
             continue;
         }
@@ -111,7 +112,9 @@ void ObjParser::parse_obj_file(const char* filename) {
             vertex_normals.emplace_back(glm::vec3(string_to_float(tokens[0]),
                                                   string_to_float(tokens[1]),
                                                   string_to_float(tokens[2])));
-            auto vstring = "vn" + std::string(tokens[0]) + std::string(tokens[1]) + std::string(tokens[2]);
+            auto vstring = "vn " + std::string(tokens[0]) + " " +
+                           std::string(tokens[1]) + " " +
+                           std::string(tokens[2]) + "\n";
             testFile.write(vstring.c_str(), vstring.size());
             continue;
         }
@@ -120,7 +123,9 @@ void ObjParser::parse_obj_file(const char* filename) {
             vertex_textures.emplace_back(glm::vec3(string_to_float(tokens[0]),
                                                    string_to_float(tokens[1]),
                                                    string_to_float(tokens[2])));
-            auto vstring = "vt" + std::string(tokens[0]) + std::string(tokens[1]) + std::string(tokens[2]);
+            auto vstring = "vt " + std::string(tokens[0]) + " " +
+                           std::string(tokens[1]) + " " +
+                           std::string(tokens[2]) + "\n";
             testFile.write(vstring.c_str(), vstring.size());
             continue;
         }
@@ -131,6 +136,7 @@ void ObjParser::parse_obj_file(const char* filename) {
                 std::vector<unsigned int> normals;
                 std::vector<unsigned int> texcoords;
 
+                std::string string = "f ";
                 for (int i = 0; i < tokens.size(); i++) {
                     const auto [v, t, n] = get_face_vertex_index(tokens[i]);
                     positions.push_back(v);
@@ -140,16 +146,27 @@ void ObjParser::parse_obj_file(const char* filename) {
                     if (n.has_value()) {
                         normals.push_back(n.value());
                     }
+
+                    string += std::format("{}/{}/{} ", v, t.value(), n.value());
                 }
+                string += "\n";
+                testFile.write(string.c_str(), string.size());
+                // auto vstring = "f " + std::string(tokens[0]) +
+                //                std::string(tokens[1]) +
+                //                std::string(tokens[2]) +
+                //                "\n";
+
                 for (int i = 1; i < positions.size() - 1; i++) {
                     Face f;
-                    f.vertex_indices = glm::ivec3(positions[0], positions[i],
-                                                  positions[i + 1]);
+                    f.vertex_indices =
+                        glm::ivec3(positions[0] - 1, positions[i] - 1,
+                                   positions[i + 1] - 1);
                     if (!normals.empty()) {
-                        f.vertex_texture_indices = glm::ivec3(
-                            texcoords[0], texcoords[i], texcoords[i + 1]);
-                        f.vertex_normal_indices =
-                            glm::ivec3(normals[0], normals[i], normals[i + 1]);
+                        f.vertex_texture_indices =
+                            glm::ivec3(texcoords[0] - 1, texcoords[i] - 1,
+                                       texcoords[i + 1] - 1);
+                        f.vertex_normal_indices = glm::ivec3(
+                            normals[0] - 1, normals[i] - 1, normals[i + 1] - 1);
                     }
                     faces.emplace_back(f);
                 }
@@ -172,6 +189,11 @@ void ObjParser::parse_obj_file(const char* filename) {
                     vn1.value() - 1, vn2.value() - 1, vn3.value() - 1);
             }
             faces.emplace_back(f);
+
+            auto string = std::format(
+                "f {}/{}/{} {}/{}/{} {}/{}/{} \n", v1, vt1.value(), vn1.value(),
+                v2, vt2.value(), vn2.value(), v3, vt3.value(), vn3.value());
+            testFile.write(string.c_str(), string.size());
         }
         line_num++;
     }

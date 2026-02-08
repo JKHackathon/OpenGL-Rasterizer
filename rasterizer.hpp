@@ -56,9 +56,6 @@ class Rasterizer {
     GLState curr_state;
 
     void uploadMesh(Mesh& mesh) {
-        // have element array buffer (stores indices?) not really sure how this
-        // works element array indexes into unified vertex buffer (pos, normals,
-        // textures) I think vao defines structure of the vertex buffer?
         GLuint vao;
         glGenVertexArrays(1, &vao);
         bindVAO(vao);
@@ -69,31 +66,38 @@ class Rasterizer {
         // Set up unified vertex buffer
         std::vector<glm::vec3> vertices;
         vertices.reserve(mesh.positions.size() * 3);
-        for (int i = 0; i < mesh.positions.size(); i++) {
-            vertices.push_back(mesh.positions[i]);
-            vertices.push_back(mesh.normals[i]);
-            // TODO: should i convert to uv-coords?
-            vertices.push_back(mesh.texcoords[i]);
+        // for (int i = 0; i < mesh.positions.size(); i++) {
+        //     vertices.push_back(mesh.positions[i]);
+            // vertices.push_back(mesh.normals[i]);
+            // // TODO: should i convert to uv-coords?
+            // vertices.push_back(mesh.texcoords[i]);
+        // }
+
+        // For drawing without EBO
+        for (auto& triangle : mesh.triangles) {
+            vertices.push_back(mesh.positions[triangle.vertices.x]);
+            vertices.push_back(mesh.positions[triangle.vertices.y]);
+            vertices.push_back(mesh.positions[triangle.vertices.z]);
         }
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3),
                      vertices.data(), GL_STATIC_DRAW);
 
         // Set up element array buffer (indices)
-        std::vector<glm::ivec3> indices;  // NOTE: must be unsigned int!
+        // std::vector<glm::ivec3> indices;  // NOTE: must be unsigned int!
         // std::vector<unsigned int> indices;
-        for (auto& triangle : mesh.triangles) {
-            // indices.push_back(triangle.vertices.x);
-            // indices.push_back(triangle.vertices.y);
-            // indices.push_back(triangle.vertices.z);
-            indices.push_back(triangle.vertices);
-        }
+        // for (auto& triangle : mesh.triangles) {
+        //     indices.push_back(triangle.vertices.x);
+        //     indices.push_back(triangle.vertices.y);
+        //     indices.push_back(triangle.vertices.z);
+        //     // indices.push_back(triangle.vertices);
+        // }
 
-        GLuint ebo;
-        glGenBuffers(1, &ebo);
-        bindElementBuffer(ebo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                     indices.size() * sizeof(glm::ivec3), indices.data(),
-                     GL_STATIC_DRAW);
+        // GLuint ebo;
+        // glGenBuffers(1, &ebo);
+        // bindElementBuffer(ebo);
+        // glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+        //              indices.size() * sizeof(unsigned int), indices.data(),
+        //              GL_STATIC_DRAW);
 
         // TODO: do i also assign to attributes now? Make sure after shaders
         // compiled position
@@ -103,33 +107,35 @@ class Rasterizer {
             // return false;
         }
         glEnableVertexAttribArray(pos);
-        glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3) * 3,
-                              (GLvoid*)0);
+        glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
+        // glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3) *
+        // 3,
+        //                       (GLvoid*)0);
 
         // normal
-        GLuint norm = glGetAttribLocation(
-            curr_state.boundProgram,
-            "norm");  // Note: optimized out by linker if not used
-        if (norm == -1) {
-            fprintf(stderr, "ERROR: norm not found or optimized out\n");
-            // return false;
-        }
-        glEnableVertexAttribArray(norm);
-        glVertexAttribPointer(norm, 3, GL_FLOAT, GL_FALSE,
-                              sizeof(glm::vec3) * 3,
-                              (GLvoid*)sizeof(glm::vec3));
+        // GLuint norm = glGetAttribLocation(
+        //     curr_state.boundProgram,
+        //     "norm");  // Note: optimized out by linker if not used
+        // if (norm == -1) {
+        //     fprintf(stderr, "ERROR: norm not found or optimized out\n");
+        //     // return false;
+        // }
+        // glEnableVertexAttribArray(norm);
+        // glVertexAttribPointer(norm, 3, GL_FLOAT, GL_FALSE,
+        //                       sizeof(glm::vec3) * 3,
+        //                       (GLvoid*)sizeof(glm::vec3));
 
-        // texcoords
-        GLuint texcoord =
-            glGetAttribLocation(curr_state.boundProgram, "texcoord");
-        if (texcoord == -1) {
-            fprintf(stderr, "ERROR: texcoord not found or optimized out\n");
-            // return false;
-        }
-        glEnableVertexAttribArray(texcoord);  // pos
-        glVertexAttribPointer(texcoord, 3, GL_FLOAT, GL_FALSE,
-                              sizeof(glm::vec3) * 3,
-                              (GLvoid*)(sizeof(glm::vec3) * 2));
+        // // texcoords
+        // GLuint texcoord =
+        //     glGetAttribLocation(curr_state.boundProgram, "texcoord");
+        // if (texcoord == -1) {
+        //     fprintf(stderr, "ERROR: texcoord not found or optimized out\n");
+        //     // return false;
+        // }
+        // glEnableVertexAttribArray(texcoord);  // pos
+        // glVertexAttribPointer(texcoord, 3, GL_FLOAT, GL_FALSE,
+        //                       sizeof(glm::vec3) * 3,
+        //                       (GLvoid*)(sizeof(glm::vec3) * 2));
 
         // TODO: unbind VAO? why? Do i want this to be self-contained? probably.
         // How do i give access to the ids tho?

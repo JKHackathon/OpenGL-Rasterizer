@@ -65,6 +65,9 @@ struct Mesh {
         for (auto face : obj.faces) {
             glm::ivec3 triangle_verts;
             for (int i = 0; i < 3; i++) {
+                int vi = face.vertex_indices[i];
+                assert(vi >= 0 && vi < obj.vertices.size());
+                
                 auto vertex = std::make_tuple(face.vertex_indices[i],
                                               face.vertex_texture_indices[i],
                                               face.vertex_normal_indices[i]);
@@ -80,10 +83,10 @@ struct Mesh {
 
                     // TODO: normals/texcoords optional
                     texcoords.push_back(
-                        obj.vertices[face.vertex_texture_indices[i]]);
+                        obj.vertex_textures[face.vertex_texture_indices[i]]);
                     assert(texcoords.size() == curr_index + 1);
                     normals.push_back(
-                        obj.vertices[face.vertex_normal_indices[i]]);
+                        obj.vertex_normals[face.vertex_normal_indices[i]]);
                     assert(normals.size() == curr_index + 1);
                     triangle_verts[i] = curr_index;
                     curr_index++;

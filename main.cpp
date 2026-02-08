@@ -194,7 +194,7 @@ int main(int argc, char** argv) {
 
     ObjParser objData;
     try {
-        objData.parse_obj_file("../simple_teapot.obj");
+        objData.parse_obj_file("../teapot.obj");
     } catch (std::runtime_error e) {
         fprintf(stderr, "Failed to parse obj file: %s", e.what());
         return -1;
@@ -291,9 +291,9 @@ int main(int argc, char** argv) {
     // Display loop
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glDrawElements(GL_TRIANGLES, mesh.triangles.size() * 3, GL_UNSIGNED_INT,
-                       0);
-        // glDrawArrays(GL_TRIANGLES, 0, mesh.triangles.size() * 3);
+        // glDrawElements(GL_TRIANGLES, mesh.triangles.size() * 3, GL_UNSIGNED_INT,
+        //                0);
+        glDrawArrays(GL_TRIANGLES, 0, mesh.triangles.size() * 3);
         // glm::vec3 rotationAxis(1, 0, 0);
         // appState.view_matrix = glm::rotate(appState.view_matrix,
         // glm::radians(1.f), glm::vec3(1, 0, 0)); glm::mat4 mvp =
