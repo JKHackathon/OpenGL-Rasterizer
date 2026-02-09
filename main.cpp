@@ -16,13 +16,38 @@
 // issue as it is dependent on compiler (more issues with ARM64)
 struct AppState {
     OrbitCamera camera;
+    double prev_x;
+    double prev_y;
+
     glm::mat4 model_matrix;
     glm::mat4 view_matrix;
     glm::mat4 projection_matrix;
+    glm::vec4 light_pos = glm::vec4(-.5, -1, 1, 1);
+
     GLint mvp_location;
     GLint mv_location;
-    double prev_x;
-    double prev_y;
+    GLint normal_mat_location;
+    GLint view_light_pos_location;
+    GLint view_camera_pos_location;
+
+    void update_shader_inputs() {
+        // TODO: should this be moved out? not explicitly done by this function
+        view_matrix = camera.calcViewMatrix();
+
+        glm::mat4 mv = view_matrix * model_matrix;
+        glm::mat3 normal_matrix = glm::transpose(glm::inverse(glm::mat3(mv)));
+        glm::mat4 mvp = projection_matrix * mv;
+        glUniformMatrix4fv(mvp_location, 1, GL_FALSE, &mvp[0][0]);
+        glUniformMatrix4fv(mv_location, 1, GL_FALSE, &mv[0][0]);
+        glUniformMatrix3fv(normal_mat_location, 1, GL_FALSE,
+                           &normal_matrix[0][0]);
+
+        glm::vec4 view_light_pos = view_matrix * light_pos;
+        glUniform4fv(view_light_pos_location, 1, &view_light_pos[0]);
+
+        glm::vec4 view_camera_pos = view_matrix * glm::vec4(camera.pos,1);
+        glUniform4fv(view_camera_pos_location, 1, &view_camera_pos[0]);
+    }
 };
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action,
@@ -43,34 +68,22 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action,
     auto* state = static_cast<AppState*>(glfwGetWindowUserPointer(window));
     if (key == GLFW_KEY_D && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
         state->camera.pan(.1, 0);
-        state->view_matrix = state->camera.calcViewMatrix();
-        glm::mat4 mvp =
-            state->projection_matrix * state->view_matrix * state->model_matrix;
-        glUniformMatrix4fv(state->mvp_location, 1, GL_FALSE, &mvp[0][0]);
+        state->update_shader_inputs();
     }
 
     if (key == GLFW_KEY_A && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
         state->camera.pan(-.1, 0);
-        state->view_matrix = state->camera.calcViewMatrix();
-        glm::mat4 mvp =
-            state->projection_matrix * state->view_matrix * state->model_matrix;
-        glUniformMatrix4fv(state->mvp_location, 1, GL_FALSE, &mvp[0][0]);
+        state->update_shader_inputs();
     }
 
     if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
         state->camera.pan(0, .1);
-        state->view_matrix = state->camera.calcViewMatrix();
-        glm::mat4 mvp =
-            state->projection_matrix * state->view_matrix * state->model_matrix;
-        glUniformMatrix4fv(state->mvp_location, 1, GL_FALSE, &mvp[0][0]);
+        state->update_shader_inputs();
     }
 
     if (key == GLFW_KEY_S && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
         state->camera.pan(0, -.1);
-        state->view_matrix = state->camera.calcViewMatrix();
-        glm::mat4 mvp =
-            state->projection_matrix * state->view_matrix * state->model_matrix;
-        glUniformMatrix4fv(state->mvp_location, 1, GL_FALSE, &mvp[0][0]);
+        state->update_shader_inputs();
     }
 }
 
@@ -100,12 +113,7 @@ static void cursor_position_callback(GLFWwindow* window, double xpos,
 
     state->camera.orbit(dx * .5, dy * .5);
     state->camera.updateBasis();
-    state->view_matrix = state->camera.calcViewMatrix();
-
-    glm::mat4 mv = state->view_matrix * state->model_matrix;
-    glm::mat4 mvp = state->projection_matrix * mv;
-    glUniformMatrix4fv(state->mvp_location, 1, GL_FALSE, &mvp[0][0]);
-    glUniformMatrix4fv(state->mv_location, 1, GL_FALSE, &mv[0][0]);
+    state->update_shader_inputs();
 
     state->prev_x = xpos;
     state->prev_y = ypos;
@@ -271,8 +279,6 @@ int main(int argc, char** argv) {
     appState->projection_matrix =
         glm::perspective<float>(glm::radians(60.f), 640.f / 480, 0.1f, 100.f);
     // glm::mat4 orthographic_projection
-    glm::mat4 mv = appState->view_matrix * appState->model_matrix;
-    glm::mat4 mvp = appState->projection_matrix * mv;
 
     // glm::vec4 c = mvp * glm::vec4(mesh.bounds.center(), 1.0f);
     // printf("mvp center: %f %f %f\n", c.x, c.y, c.z);
@@ -281,13 +287,35 @@ int main(int argc, char** argv) {
     if (appState->mvp_location == -1) {
         fprintf(stderr, "ERROR: mvp uniform not found or optimized out\n");
     }
-    glUniformMatrix4fv(appState->mvp_location, 1, GL_FALSE, &mvp[0][0]);
 
     appState->mv_location = glGetUniformLocation(program, "mv");
     if (appState->mv_location == -1) {
         fprintf(stderr, "ERROR: mv uniform not found or optimized out\n");
     }
-    glUniformMatrix4fv(appState->mv_location, 1, GL_FALSE, &mv[0][0]);
+
+    appState->normal_mat_location =
+        glGetUniformLocation(program, "normal_matrix");
+    if (appState->normal_mat_location == -1) {
+        fprintf(stderr,
+                "ERROR: normal_matrix uniform not found or optimized out\n");
+    }
+
+    appState->view_light_pos_location =
+        glGetUniformLocation(program, "view_light_pos");
+    if (appState->view_light_pos_location == -1) {
+        fprintf(stderr,
+                "ERROR: view_light_pos uniform not found or optimized out\n");
+    }
+
+    appState->view_camera_pos_location =
+        glGetUniformLocation(program, "view_camera_pos");
+    if (appState->view_camera_pos_location== -1) {
+        fprintf(
+            stderr,
+            "ERROR: view_camera_pos uniform not found or optimized out\n");
+    }
+
+    appState->update_shader_inputs();
 
     // Display loop
     glEnable(GL_DEPTH_TEST);

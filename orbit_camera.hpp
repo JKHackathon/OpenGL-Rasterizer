@@ -24,9 +24,9 @@ struct OrbitCamera {
           radius(2) {}
 
     void updateBasis() {
-        // pitch = glm::clamp(pitch, -89.0f, 89.0f);
+        // TODO: switch to quaternions to prevent gimbal lock/flip, also makes rotation simpler
+        pitch = glm::clamp(pitch, -89.0f, 89.0f);
 
-        // TODO: x, z axis might be flipped
         forward.x = std::cos(glm::radians(pitch)) * std::cos(glm::radians(yaw));
         forward.y = std::sin(glm::radians(pitch));
         forward.z = std::cos(glm::radians(pitch)) * std::sin(glm::radians(yaw));
