@@ -204,7 +204,7 @@ int main(int argc, char** argv) {
 
     ObjLoader objData;
     try {
-        objData.parse_obj_file("../teapot.obj");
+        objData.parse_obj_file("../teapot/teapot.obj");
     } catch (std::runtime_error e) {
         fprintf(stderr, "Failed to parse obj file: %s", e.what());
         return -1;

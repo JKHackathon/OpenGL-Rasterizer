@@ -2,7 +2,7 @@
 #include <glm/vec3.hpp>
 #include <tuple>
 
-#include "ObjParser.hpp"
+#include "obj_loader.hpp"
 const double MIN_DOUBLE = std::numeric_limits<double>::lowest();
 const double MAX_DOUBLE = std::numeric_limits<double>::max();
 
@@ -55,7 +55,7 @@ struct Mesh {
     };
     std::vector<Triangle> triangles;
 
-    Mesh(ObjParser& obj) {
+    Mesh(ObjLoader& obj) {
         std::unordered_map<std::tuple<int, int, int>, size_t, TupleHash>
             unique_vertices;
 
@@ -67,7 +67,7 @@ struct Mesh {
             for (int i = 0; i < 3; i++) {
                 int vi = face.vertex_indices[i];
                 assert(vi >= 0 && vi < obj.vertices.size());
-                
+
                 auto vertex = std::make_tuple(face.vertex_indices[i],
                                               face.vertex_texture_indices[i],
                                               face.vertex_normal_indices[i]);

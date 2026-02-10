@@ -1,4 +1,4 @@
-#include "ObjParser.hpp"
+#include "obj_loader.hpp"
 
 // Converts string to float (throws exception on failure)
 float string_to_float(std::string_view value_view) {
@@ -29,7 +29,7 @@ int string_to_int(std::string_view value_view) {
 }
 
 std::tuple<int, std::optional<int>, std::optional<int>>
-ObjParser::get_face_vertex_index(std::string_view face_index_group) {
+ObjLoader::get_face_vertex_index(std::string_view face_index_group) {
     std::vector<std::string_view> tokens;
 
     size_t start = 0;
@@ -52,7 +52,7 @@ ObjParser::get_face_vertex_index(std::string_view face_index_group) {
     return {v, vt, vn};
 }
 
-void ObjParser::parse_obj_file(const char* filename) {
+void ObjLoader::parse_obj_file(const char* filename) {
     std::ifstream file;
     file.open(filename);
     if (!file.is_open()) {
@@ -60,15 +60,30 @@ void ObjParser::parse_obj_file(const char* filename) {
             "Failed to open file: " + std::string(filename) + "\n");
     }
 
+    fprintf(stdout, "Using obj file: %s\n", std::string(filename).c_str());
+
     std::ofstream testFile;
     testFile.open("test_file.obj");
     if (!testFile.is_open()) {
         throw std::runtime_error("Failed to open test file: \n");
     }
 
+    std::string curr_material;
+    std::string filepath_dir =
+        std::filesystem::path(filename).parent_path().string();
+    if (!filepath_dir.empty()) {
+        filepath_dir +=
+            "/";  // TODO: this expects forward slash for dir structure
+    }
     std::string line;
-    size_t line_num = 0;
     while (getline(file, line)) {
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+        if (line.empty()) { // good, but prob not necessary
+            continue;
+        }
+
         std::string_view line_view = line;
         size_t pos = line_view.find(' ', 0);
         std::string_view type = line_view.substr(0, pos);
@@ -168,6 +183,9 @@ void ObjParser::parse_obj_file(const char* filename) {
                         f.vertex_normal_indices = glm::ivec3(
                             normals[0] - 1, normals[i] - 1, normals[i + 1] - 1);
                     }
+                    if (!curr_material.empty()) {
+                        f.material = curr_material;
+                    }
                     faces.emplace_back(f);
                 }
                 continue;
@@ -188,13 +206,130 @@ void ObjParser::parse_obj_file(const char* filename) {
                 f.vertex_normal_indices = glm::ivec3(
                     vn1.value() - 1, vn2.value() - 1, vn3.value() - 1);
             }
+            if (!curr_material.empty()) {
+                f.material = curr_material;
+            }
             faces.emplace_back(f);
 
             auto string = std::format(
                 "f {}/{}/{} {}/{}/{} {}/{}/{} \n", v1, vt1.value(), vn1.value(),
                 v2, vt2.value(), vn2.value(), v3, vt3.value(), vn3.value());
             testFile.write(string.c_str(), string.size());
+            continue;
         }
-        line_num++;
+
+        if (type == "mtllib") {
+            parse_mtl_file(filepath_dir + std::string(tokens[0]));
+        }
+
+        if (type == "usemtl") {
+            auto material_name = std::string(tokens[0]);
+            if (!materials.contains(material_name)) {
+                throw std::runtime_error("Material '" + material_name +
+                                         "' not found!\n");
+            }
+            curr_material = material_name;
+        }
+
+        // TODO: how do i want to handle objects/groups? I will likely ignore
+        // groups, for now, ignore objects
+        // TODO: smooth shading
+    }
+}
+
+void ObjLoader::parse_mtl_file(std::string mtl_filename) {
+    std::ifstream file;
+    file.open(mtl_filename);
+    if (!file.is_open()) {
+        throw std::runtime_error(
+            "Failed to open mtl file: " + std::string(mtl_filename) + "\n");
+    }
+
+    Material* curr_material;
+
+    std::string line;
+    while (getline(file, line)) {
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+        std::string_view line_view = line;
+        std::vector<std::string_view> tokens;
+
+        size_t start = 0;
+        while (true) {
+            size_t pos = line_view.find(' ', start);
+            if (pos == std::string_view::npos) {
+                auto last_val = line_view.substr(start);
+                if (last_val != "") {
+                    tokens.emplace_back(last_val);
+                }
+                break;
+            }
+            auto next_val = line_view.substr(start, pos - start);
+            if (next_val != "") {
+                tokens.emplace_back(next_val);
+            }
+            start = pos + 1;
+        }
+
+        if (tokens.empty()) {
+            continue;
+        }
+
+        auto type = tokens[0];
+        if (type == "newmtl") {
+            auto mat_u = std::make_unique<Material>();
+            curr_material = mat_u.get();
+            materials.emplace(std::string(tokens[1]), std::move(mat_u));
+        }
+
+        else if (type == "Ka") {  // ambient
+            curr_material->K_a = glm::vec3(string_to_float(tokens[1]),
+                                           string_to_float(tokens[2]),
+                                           string_to_float(tokens[3]));
+        } else if (type == "Kd") {  // diffuse
+            curr_material->K_d = glm::vec3(string_to_float(tokens[1]),
+                                           string_to_float(tokens[2]),
+                                           string_to_float(tokens[3]));
+        } else if (type == "Ks") {  // specular
+            curr_material->K_s = glm::vec3(string_to_float(tokens[1]),
+                                           string_to_float(tokens[2]),
+                                           string_to_float(tokens[3]));
+        } else if (type == "Ns") {  // shininess
+            curr_material->shininess = string_to_float(tokens[1]);
+        }
+        // Ke: emission
+
+        // Transparency
+        else if (type == "d") {  // dissolve
+            curr_material->transparency = 1 - string_to_float(tokens[1]);
+        } else if (type == "Tr") {  // transmission
+            curr_material->transparency = string_to_float(tokens[1]);
+        } else if (type == "Tf") {  // transmission filter color
+            // TODO: can be CIEXYZ, or spectral curve file
+            curr_material->transmission_color = glm::vec3(
+                string_to_float(tokens[1]), string_to_float(tokens[2]),
+                string_to_float(tokens[3]));
+        } else if (type == "Ni") {  // optical density/index of refraction
+            curr_material->ior = string_to_float(tokens[1]);
+        }
+
+        // TODO: may need to handle this
+        // else if (type == "illum") { // illumination models
+
+        // }
+
+        // Texture Maps
+        // TODO: ideally, should verify here that files exist/can be decoded
+        // Later TODO: so many options...
+        else if (type == "map_Ka") {  // ambient map
+            curr_material->ambient_map_filepath = std::string(tokens[1]);
+        } else if (type == "map_Kd") {  // diffuse map
+            curr_material->diffuse_map_filepath = std::string(tokens[1]);
+        } else if (type == "map_Ks") {  // specular map
+            curr_material->specular_map_filepath = std::string(tokens[1]);
+        } else if (type == "map_bump" || type == "bump") {  // bump map
+            curr_material->bump_map_filepath = std::string(tokens[1]);
+        }
     }
 }
