@@ -46,21 +46,23 @@ struct BoundingBox {
 struct Mesh {
     std::vector<glm::vec3> positions;
     std::vector<glm::vec3> normals;
-    std::vector<glm::vec3> texcoords;
+    std::vector<glm::vec2> texcoords;
 
     BoundingBox bounds;
 
     struct Triangle {
         glm::ivec3 vertices;
+        Material* material; // Later TODO: this should be an index into scene list of materials
     };
     std::vector<Triangle> triangles;
 
+    // Later TODO: this should be handled by scene to determine which faces become a mesh
+        // Materials + texture maps should be stored in scene
     Mesh(ObjLoader& obj) {
         std::unordered_map<std::tuple<int, int, int>, size_t, TupleHash>
             unique_vertices;
 
-        // TODO: separate it out such that each unique vertex has one index
-        // each (p,n,t) tuple has its own index
+        size_t num_faces_with_materials = 0;
         size_t curr_index = 0;
         for (auto face : obj.faces) {
             glm::ivec3 triangle_verts;
@@ -83,17 +85,27 @@ struct Mesh {
 
                     // TODO: normals/texcoords optional
                     texcoords.push_back(
-                        obj.vertex_textures[face.vertex_texture_indices[i]]);
+                        glm::vec2(obj.vertex_textures[face.vertex_texture_indices[i]]));
                     assert(texcoords.size() == curr_index + 1);
                     normals.push_back(
-                        obj.vertex_normals[face.vertex_normal_indices[i]]);
+                        obj.vertex_normals[face.vertex_normal_indices[i]]); // TODO: should I normalize here?
                     assert(normals.size() == curr_index + 1);
                     triangle_verts[i] = curr_index;
                     curr_index++;
                 }
             }
+            Triangle tri;
+            tri.vertices = triangle_verts;
+            if (face.material.has_value()) {
+                // TODO: this is kinda ugly
+                tri.material = obj.materials[face.material.value()].get();
+                num_faces_with_materials++;
+            }
+
             triangles.emplace_back(triangle_verts);
         }
+
+        fprintf(stdout, "\nDEBUG: %lu faces have materials\n\n", num_faces_with_materials);
     }
 
     glm::mat4 center_mesh_transform() {

@@ -55,6 +55,12 @@ class Rasterizer {
 
     GLState curr_state;
 
+    struct VertexData {
+        glm::vec3 position;
+        glm::vec3 normal;
+        glm::vec2 texcoord;
+    };
+
     void uploadMesh(Mesh& mesh) {
         GLuint vao;
         glGenVertexArrays(1, &vao);
@@ -64,13 +70,11 @@ class Rasterizer {
         bindArrayBuffer(vbo);
 
         // Set up unified vertex buffer
-        std::vector<glm::vec3> vertices;
+        std::vector<VertexData> vertices;
         vertices.reserve(mesh.positions.size() * 3);
         for (int i = 0; i < mesh.positions.size(); i++) {
-            vertices.push_back(mesh.positions[i]);
-            vertices.push_back(mesh.normals[i]);
-            // TODO: should i convert to uv-coords?
-            vertices.push_back(mesh.texcoords[i]);
+            vertices.emplace_back(mesh.positions[i], mesh.normals[i],
+                                  glm::normalize(mesh.texcoords[i])); // Change to st-coords
         }
 
         // For drawing without EBO
@@ -79,7 +83,7 @@ class Rasterizer {
         //     vertices.push_back(mesh.positions[triangle.vertices.y]);
         //     vertices.push_back(mesh.positions[triangle.vertices.z]);
         // }
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3),
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(VertexData),
                      vertices.data(), GL_STATIC_DRAW);
 
         // Set up element array buffer (indices)
@@ -134,7 +138,7 @@ class Rasterizer {
         }
         glEnableVertexAttribArray(texcoord);  // pos
         glVertexAttribPointer(texcoord, 3, GL_FLOAT, GL_FALSE,
-                              sizeof(glm::vec3) * 3,
+                              sizeof(glm::vec2) * 3,
                               (GLvoid*)(sizeof(glm::vec3) * 2));
 
         // TODO: unbind VAO? why? Do i want this to be self-contained? probably.

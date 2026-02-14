@@ -262,7 +262,7 @@ int main(int argc, char** argv) {
         glfwTerminate();
         return -1;
     }
-
+    
     rasterizer.uploadMesh(
         mesh);  // Here because shaders need to be compiled first
 
