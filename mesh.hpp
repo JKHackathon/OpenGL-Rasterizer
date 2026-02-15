@@ -58,6 +58,9 @@ struct Mesh {
 
     // Later TODO: this should be handled by scene to determine which faces become a mesh
         // Materials + texture maps should be stored in scene
+    // TODO: meshes need to be split by material (multiple mesh from 1 obj file)
+        // Change this to a factory function of sorts
+    // Actually, could keep it like this, then split on upload in rasterizer
     Mesh(ObjLoader& obj) {
         std::unordered_map<std::tuple<int, int, int>, size_t, TupleHash>
             unique_vertices;
@@ -98,11 +101,11 @@ struct Mesh {
             tri.vertices = triangle_verts;
             if (face.material.has_value()) {
                 // TODO: this is kinda ugly
-                tri.material = obj.materials[face.material.value()].get();
+                tri.material = obj.materials.at(face.material.value()).get();
                 num_faces_with_materials++;
             }
 
-            triangles.emplace_back(triangle_verts);
+            triangles.emplace_back(tri);
         }
 
         fprintf(stdout, "\nDEBUG: %lu faces have materials\n\n", num_faces_with_materials);

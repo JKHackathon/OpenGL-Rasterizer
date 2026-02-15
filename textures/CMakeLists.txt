@@ -8,7 +8,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(textures main.cpp
                         ../obj_loader.cpp
-                        ../external/lodepng.cpp)
+                        ../external/lodepng.cpp
+                        ../rasterizer.cpp)
 
 find_package(glfw3 3.4 REQUIRED)
 target_link_libraries(textures glfw)

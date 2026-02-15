@@ -276,6 +276,9 @@ void ObjLoader::parse_mtl_file(std::string filepath_dir,
             }
             auto next_val = line_view.substr(start, pos - start);
             if (next_val != "") {
+                if (next_val[0] == '\t') {
+                    next_val = next_val.substr(1);
+                }
                 tokens.emplace_back(next_val);
             }
             start = pos + 1;
@@ -339,6 +342,7 @@ void ObjLoader::parse_mtl_file(std::string filepath_dir,
             }
             curr_material->ambient_map_filepath = std::make_shared<TextureMap>();
             decode_texture_png(texture_file, curr_material->ambient_map_filepath.get());
+            texture_maps.emplace(texture_file, curr_material->ambient_map_filepath);
             loaded_texture_maps.emplace(texture_file);
             
         } else if (type == "map_Kd") {  // diffuse map
@@ -349,6 +353,7 @@ void ObjLoader::parse_mtl_file(std::string filepath_dir,
             }
             curr_material->diffuse_map_filepath = std::make_shared<TextureMap>();
             decode_texture_png(texture_file, curr_material->diffuse_map_filepath.get());
+            texture_maps.emplace(texture_file, curr_material->diffuse_map_filepath);
             loaded_texture_maps.emplace(texture_file);
 
         } else if (type == "map_Ks") {  // specular map
@@ -359,6 +364,7 @@ void ObjLoader::parse_mtl_file(std::string filepath_dir,
             }
             curr_material->specular_map_filepath = std::make_shared<TextureMap>();
             decode_texture_png(texture_file, curr_material->specular_map_filepath.get());
+            texture_maps.emplace(texture_file, curr_material->specular_map_filepath);
             loaded_texture_maps.emplace(texture_file);
 
         } else if (type == "map_bump" || type == "bump") {  // bump map
@@ -369,6 +375,7 @@ void ObjLoader::parse_mtl_file(std::string filepath_dir,
             }
             curr_material->bump_map_filepath = std::make_shared<TextureMap>();
             decode_texture_png(texture_file, curr_material->bump_map_filepath.get());
+            texture_maps.emplace(texture_file, curr_material->bump_map_filepath);
             loaded_texture_maps.emplace(texture_file);
         }
     }

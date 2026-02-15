@@ -7,7 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(shading main.cpp
-                        ../obj_loader.cpp)
+                        ../obj_loader.cpp
+                        ../rasterizer.cpp)
 
 find_package(glfw3 3.4 REQUIRED)
 target_link_libraries(shading glfw)
