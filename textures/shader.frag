@@ -32,11 +32,13 @@ uniform vec4 view_light_pos;
 uniform vec4 view_camera_pos;
 
 vec3 diffuse(vec4 dir_to_light, vec3 N) {
-    return material.diffuse * I * dot(N, vec3(dir_to_light));
+    return vec3(texture(tex, txc)) * I * dot(N, vec3(dir_to_light));
+    //return material.diffuse * I * dot(N, vec3(dir_to_light));
 }
 
 vec3 ambient() {
-    return material.ambient * I;
+    return vec3(texture(tex, txc)) * I;
+    // return material.ambient * I;
 }
 
 vec3 specular(vec4 dir_to_light, vec3 N) {

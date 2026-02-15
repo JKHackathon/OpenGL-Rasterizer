@@ -17,5 +17,5 @@ void main()
     gl_Position = mvp * vec4(pos,1);
     view_pos = mv * vec4(pos,1);
     view_normal = normalize(normal_matrix * norm);
-    txc = texcoord;
+    txc = texcoord;//normalize(texcoord); // TODO: does this need to be transformed?
 }

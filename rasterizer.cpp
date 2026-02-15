@@ -53,7 +53,9 @@ void Rasterizer::uploadMesh(Mesh& mesh) {
     for (int i = 0; i < mesh.positions.size(); i++) {
         vertices.emplace_back(
             mesh.positions[i], mesh.normals[i],
-            glm::normalize(mesh.texcoords[i]));  // Change to st-coords
+            mesh.texcoords[i]);
+            // TODO: for some reason, this is not supposed to be normalized??? Expects UV not ST coords
+            //glm::normalize(mesh.texcoords[i]));  // Change to st-coords
     }
 
     // For drawing without EBO
@@ -134,12 +136,31 @@ void Rasterizer::upload_material(Material* material) {
     uploadFloat("material.transparency", material->transparency);
     uploadVec3("material.transmission_color", material->transmission_color);
 
-    
+    upload_texture(material->diffuse_map_filepath.get());
 }
 
 
 void Rasterizer::upload_texture(TextureMap* texture) {
+    // TODO: For now, just diffuse, then abstract out
+    GLuint texID;
+    glGenTextures(1, &texID); // Could move this to upload_material to generate all that i need at once
+    glBindTexture(GL_TEXTURE_2D, texID);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture->width, texture->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &texture->pixels[0]);
 
+    // Filters: mipmap must be generated for default filter!
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Tiling
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texID);
+
+    GLint sampler = glGetUniformLocation(curr_state.boundProgram, "tex");
+    if (sampler == -1) {
+        fprintf(stderr, "ERROR: tex sampler uniform not found or optimized out\n");
+    }
+    glUseProgram(curr_state.boundProgram); // Is this needed?
+    glUniform1i(sampler, 0);
 }
 
 void Rasterizer::uploadVec3(const GLchar* varName, glm::vec3 data) {
