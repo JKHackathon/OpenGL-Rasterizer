@@ -89,7 +89,7 @@ void Rasterizer::uploadMesh(Mesh& mesh) {
         // return false;
     }
     glEnableVertexAttribArray(pos);
-    glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3) * 3,
+    glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData),
                           (GLvoid*)0);
     // For without EBO
     // glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
@@ -103,7 +103,7 @@ void Rasterizer::uploadMesh(Mesh& mesh) {
         // return false;
     }
     glEnableVertexAttribArray(norm);
-    glVertexAttribPointer(norm, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3) * 3,
+    glVertexAttribPointer(norm, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData),
                           (GLvoid*)sizeof(glm::vec3));
 
     // texcoords
@@ -113,8 +113,8 @@ void Rasterizer::uploadMesh(Mesh& mesh) {
         // return false;
     }
     glEnableVertexAttribArray(texcoord);  // pos
-    glVertexAttribPointer(texcoord, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(glm::vec2) * 3,
+    glVertexAttribPointer(texcoord, 2, GL_FLOAT, GL_FALSE,
+                          sizeof(VertexData),
                           (GLvoid*)(sizeof(glm::vec3) * 2));
 
     // TODO: unbind VAO? why? Do i want this to be self-contained? probably.
@@ -134,8 +134,9 @@ void Rasterizer::upload_material(Material* material) {
     uploadFloat("material.transparency", material->transparency);
     uploadVec3("material.transmission_color", material->transmission_color);
 
-    // TODO: material texture index. Should upload all textures at once somehow
+    
 }
+
 
 void Rasterizer::upload_texture(TextureMap* texture) {
 
