@@ -33,10 +33,12 @@ class Rasterizer {
 
     void uploadVec3(const GLchar* varName, glm::vec3 data);
     void uploadFloat(const GLchar* varName, float data);
+    void uploadBool(const GLchar* varName, bool data);
 
     void uploadMesh(Mesh& mesh);
     void upload_material(Material* material);
-    void upload_texture(TextureMap* texture);
+    void upload_texture(TextureMap* texture, const GLchar* shaderVar,
+                        int textureIndex);
 
    private:
 };

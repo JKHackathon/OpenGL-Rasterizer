@@ -51,11 +51,11 @@ void Rasterizer::uploadMesh(Mesh& mesh) {
     std::vector<VertexData> vertices;
     vertices.reserve(mesh.positions.size() * 3);
     for (int i = 0; i < mesh.positions.size(); i++) {
-        vertices.emplace_back(
-            mesh.positions[i], mesh.normals[i],
-            mesh.texcoords[i]);
-            // TODO: for some reason, this is not supposed to be normalized??? Expects UV not ST coords
-            //glm::normalize(mesh.texcoords[i]));  // Change to st-coords
+        vertices.emplace_back(mesh.positions[i], mesh.normals[i],
+                              mesh.texcoords[i]);
+        // TODO: for some reason, this is not supposed to be normalized???
+        // Expects UV not ST coords
+        // glm::normalize(mesh.texcoords[i]));  // Change to st-coords
     }
 
     // For drawing without EBO
@@ -115,8 +115,7 @@ void Rasterizer::uploadMesh(Mesh& mesh) {
         // return false;
     }
     glEnableVertexAttribArray(texcoord);  // pos
-    glVertexAttribPointer(texcoord, 2, GL_FLOAT, GL_FALSE,
-                          sizeof(VertexData),
+    glVertexAttribPointer(texcoord, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData),
                           (GLvoid*)(sizeof(glm::vec3) * 2));
 
     // TODO: unbind VAO? why? Do i want this to be self-contained? probably.
@@ -136,31 +135,49 @@ void Rasterizer::upload_material(Material* material) {
     uploadFloat("material.transparency", material->transparency);
     uploadVec3("material.transmission_color", material->transmission_color);
 
-    upload_texture(material->diffuse_map_filepath.get());
+    if (material->diffuse_map_filepath) {
+        uploadBool("material.has_diffuse_tex", true);
+        upload_texture(material->diffuse_map_filepath.get(), "diffuse_tex", 0);
+    }
+    if (material->ambient_map_filepath) {
+        uploadBool("material.has_ambient_tex", true);
+        upload_texture(material->ambient_map_filepath.get(), "ambient_tex", 1);
+    }
+    if (material->specular_map_filepath) {
+        uploadBool("material.has_specular_tex", true);
+        upload_texture(material->specular_map_filepath.get(), "specular_tex",
+                       2);
+    }
+    if (material->bump_map_filepath) {
+        uploadBool("material.has_bump_tex", true);
+        upload_texture(material->bump_map_filepath.get(), "bump_tex", 3);
+    }
 }
 
-
-void Rasterizer::upload_texture(TextureMap* texture) {
+void Rasterizer::upload_texture(TextureMap* texture, const GLchar* shaderVar,
+                                int textureIndex) {
     // TODO: For now, just diffuse, then abstract out
     GLuint texID;
-    glGenTextures(1, &texID); // Could move this to upload_material to generate all that i need at once
+    glGenTextures(1, &texID);  // Could move this to upload_material to generate
+                               // all that i need at once
+    glActiveTexture(GL_TEXTURE0 + textureIndex);
     glBindTexture(GL_TEXTURE_2D, texID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture->width, texture->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &texture->pixels[0]);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture->width, texture->height, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, &texture->pixels[0]);
 
     // Filters: mipmap must be generated for default filter!
     glGenerateMipmap(GL_TEXTURE_2D);
 
     // Tiling
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texID);
-
-    GLint sampler = glGetUniformLocation(curr_state.boundProgram, "tex");
+    GLint sampler = glGetUniformLocation(curr_state.boundProgram, shaderVar);
     if (sampler == -1) {
-        fprintf(stderr, "ERROR: tex sampler uniform not found or optimized out\n");
+        fprintf(stderr,
+                "ERROR: %s sampler uniform not found or optimized out\n",
+                shaderVar);
     }
-    glUseProgram(curr_state.boundProgram); // Is this needed?
-    glUniform1i(sampler, 0);
+    glUseProgram(curr_state.boundProgram);  // Is this needed?
+    glUniform1i(sampler, textureIndex);
 }
 
 void Rasterizer::uploadVec3(const GLchar* varName, glm::vec3 data) {
@@ -179,4 +196,13 @@ void Rasterizer::uploadFloat(const GLchar* varName, float data) {
                 varName);
     }
     glUniform1f(location, data);
+}
+
+void Rasterizer::uploadBool(const GLchar* varName, bool data) {
+    auto location = glGetUniformLocation(curr_state.boundProgram, varName);
+    if (location == -1) {
+        fprintf(stderr, "ERROR: %s uniform not found or optimized out\n",
+                varName);
+    }
+    glUniform1i(location, data);
 }
