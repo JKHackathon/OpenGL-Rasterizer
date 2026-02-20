@@ -5,6 +5,7 @@
 #include <format>
 #include <fstream>
 #include <glm/vec3.hpp>
+#include <glm/vec2.hpp>
 #include <unordered_set>
 #include <vector>
 
@@ -26,7 +27,7 @@ struct ObjLoader {
     void parse_mtl_file(std::string filepath_dir, std::string mtl_filename);
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec3> vertex_normals;
-    std::vector<glm::vec3> vertex_textures;
+    std::vector<glm::vec2> vertex_textures;
 
     std::vector<Face> faces;
     // TODO: should i be creating the material pointers here?

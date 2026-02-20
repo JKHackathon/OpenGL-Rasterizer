@@ -204,7 +204,8 @@ int main(int argc, char** argv) {
 
     ObjLoader objData;
     try {
-        objData.parse_obj_file("../teapot/teapot.obj");
+        // objData.parse_obj_file("../teapot/teapot.obj");
+        objData.parse_obj_file("../yoda/yoda.obj");
     } catch (std::runtime_error e) {
         fprintf(stderr, "Failed to parse obj file: %s", e.what());
         return -1;
@@ -262,7 +263,7 @@ int main(int argc, char** argv) {
         glfwTerminate();
         return -1;
     }
-    
+
     rasterizer.uploadMesh(
         mesh);  // Here because shaders need to be compiled first
 

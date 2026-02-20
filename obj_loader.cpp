@@ -136,12 +136,10 @@ void ObjLoader::parse_obj_file(const char* filename) {
 
         if (type == "vt") {
             // TODO: only u is required, v,w optional
-            vertex_textures.emplace_back(glm::vec3(string_to_float(tokens[0]),
-                                                   string_to_float(tokens[1]),
-                                                   string_to_float(tokens[2])));
+            vertex_textures.emplace_back(glm::vec2(string_to_float(tokens[0]),
+                                                   string_to_float(tokens[1])));
             auto vstring = "vt " + std::string(tokens[0]) + " " +
-                           std::string(tokens[1]) + " " +
-                           std::string(tokens[2]) + "\n";
+                           std::string(tokens[1]) + "\n";
             testFile.write(vstring.c_str(), vstring.size());
             continue;
         }
@@ -242,7 +240,8 @@ void ObjLoader::parse_obj_file(const char* filename) {
 
 void ObjLoader::parse_mtl_file(std::string filepath_dir,
                                std::string mtl_filename) {
-    if (loaded_materials.contains(filepath_dir + mtl_filename)) { // File already loaded
+    if (loaded_materials.contains(filepath_dir +
+                                  mtl_filename)) {  // File already loaded
         return;
     }
 
@@ -337,45 +336,60 @@ void ObjLoader::parse_mtl_file(std::string filepath_dir,
         else if (type == "map_Ka") {  // ambient map
             auto texture_file = filepath_dir + std::string(tokens[1]);
             if (loaded_texture_maps.contains(texture_file)) {
-                curr_material->ambient_map_filepath = texture_maps.at(texture_file);
+                curr_material->ambient_map_filepath =
+                    texture_maps.at(texture_file);
                 continue;
             }
-            curr_material->ambient_map_filepath = std::make_shared<TextureMap>();
-            decode_texture_png(texture_file, curr_material->ambient_map_filepath.get());
-            texture_maps.emplace(texture_file, curr_material->ambient_map_filepath);
+            curr_material->ambient_map_filepath =
+                std::make_shared<TextureMap>();
+            decode_texture_png(texture_file,
+                               curr_material->ambient_map_filepath.get());
+            texture_maps.emplace(texture_file,
+                                 curr_material->ambient_map_filepath);
             loaded_texture_maps.emplace(texture_file);
-            
+
         } else if (type == "map_Kd") {  // diffuse map
             auto texture_file = filepath_dir + std::string(tokens[1]);
             if (loaded_texture_maps.contains(texture_file)) {
-                curr_material->diffuse_map_filepath = texture_maps.at(texture_file);
+                curr_material->diffuse_map_filepath =
+                    texture_maps.at(texture_file);
                 continue;
             }
-            curr_material->diffuse_map_filepath = std::make_shared<TextureMap>();
-            decode_texture_png(texture_file, curr_material->diffuse_map_filepath.get());
-            texture_maps.emplace(texture_file, curr_material->diffuse_map_filepath);
+            curr_material->diffuse_map_filepath =
+                std::make_shared<TextureMap>();
+            decode_texture_png(texture_file,
+                               curr_material->diffuse_map_filepath.get());
+            texture_maps.emplace(texture_file,
+                                 curr_material->diffuse_map_filepath);
             loaded_texture_maps.emplace(texture_file);
 
         } else if (type == "map_Ks") {  // specular map
             auto texture_file = filepath_dir + std::string(tokens[1]);
             if (loaded_texture_maps.contains(texture_file)) {
-                curr_material->specular_map_filepath = texture_maps.at(texture_file);
+                curr_material->specular_map_filepath =
+                    texture_maps.at(texture_file);
                 continue;
             }
-            curr_material->specular_map_filepath = std::make_shared<TextureMap>();
-            decode_texture_png(texture_file, curr_material->specular_map_filepath.get());
-            texture_maps.emplace(texture_file, curr_material->specular_map_filepath);
+            curr_material->specular_map_filepath =
+                std::make_shared<TextureMap>();
+            decode_texture_png(texture_file,
+                               curr_material->specular_map_filepath.get());
+            texture_maps.emplace(texture_file,
+                                 curr_material->specular_map_filepath);
             loaded_texture_maps.emplace(texture_file);
 
         } else if (type == "map_bump" || type == "bump") {  // bump map
             auto texture_file = filepath_dir + std::string(tokens[1]);
             if (loaded_texture_maps.contains(texture_file)) {
-                curr_material->bump_map_filepath = texture_maps.at(texture_file);
+                curr_material->bump_map_filepath =
+                    texture_maps.at(texture_file);
                 continue;
             }
             curr_material->bump_map_filepath = std::make_shared<TextureMap>();
-            decode_texture_png(texture_file, curr_material->bump_map_filepath.get());
-            texture_maps.emplace(texture_file, curr_material->bump_map_filepath);
+            decode_texture_png(texture_file,
+                               curr_material->bump_map_filepath.get());
+            texture_maps.emplace(texture_file,
+                                 curr_material->bump_map_filepath);
             loaded_texture_maps.emplace(texture_file);
         }
     }
